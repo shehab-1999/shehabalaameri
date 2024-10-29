@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id          String       @id @default(cuid())
+  userName    String
+  email       String       @unique
+  password    String
+  sessions    Session[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isDeleted   Boolean      @default(false)
+  news        News[]
+ 
+  permissions Permission[] @relation("UserPermissions") 
+
+
+  role String @default("USER")
+}
+
+model Permission {
+  id     String @id @default(cuid())
+  action String // e.g. create, read, update, delete
+  entity String // e.g. note, user, etc.
+  access String // e.g. own or any
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roles     Role[]
+  users     Users[]  @relation("UserPermissions")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  permissions Permission[]
+}
+
+model News {
+  id         String     @id @default(cuid())
+  headline   String
+  title      String @db.LongText
+  img        String?
+  user       Users      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId     String
+  department Department @relation(fields: [depID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  depID      String
+    createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isDeleted   Boolean      @default(false)
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  expirationDate DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           Users    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId         String
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  depName   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  staffs    Staff[]
+  doctors   Doctor[]
+  news      News[]
+}
+
+model Staff {
+  id         String     @id @default(cuid())
+  staffName  String
+  phone      String?
+  department Department @relation(fields: [depID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  depID      String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  isDeleted  Boolean    @default(false)
+}
+
+model Doctor {
+  id         String     @id @default(cuid())
+  doctorName String
+  phone      String?
+  specialist String
+  department Department @relation(fields: [depID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  depID      String
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  isDeleted Boolean       @default(false)
+  patient   Oppontement[]
+  weekwork  Shift[]
+}
+
+model Patient {
+  id         String        @id @default(cuid())
+  patName    String
+  address    String?
+  gender     Gender?
+  doctorBack DateTime?
+  phone      String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  isDeleted  Boolean       @default(false)
+  doctor     Oppontement[]
+}
+
+enum Gender {
+  female
+  male
+}
+
+model Oppontement {
+  doctor    Doctor   @relation(fields: [docID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  docID     String
+  patient   Patient  @relation(fields: [patID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  patID     String
+  createdAt DateTime @default(now())
+  date      DateTime
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+
+  @@id([docID, patID])
+}
+
+model Shift {
+  id        String  @id @default(cuid())
+  day       String
+  startTime String
+  endTime   String
+  doctor    Doctor? @relation(fields: [docID], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  docID     String
+}
